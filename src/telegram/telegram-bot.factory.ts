@@ -4,27 +4,35 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 
 export type BotContext = FileFlavor<Context>;
 
+const isBun = typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined';
+
 /**
  * Builds a grammy Bot. When `proxyUrl` is provided we route traffic through
- * an HttpsProxyAgent — necessary in regions where the Telegram Bot API is
- * unreachable from origin networks.
+ * the configured HTTP(S) proxy — necessary in regions where the Telegram Bot
+ * API is unreachable from origin networks.
  *
- * NOTE: grammy on Node uses `node-fetch` under the hood (see
- * grammy/out/shim.node.js). `node-fetch` recognises the `agent` field on
- * RequestInit, NOT `dispatcher` from undici, so we must pass an
- * `https.Agent`-compatible agent here.
+ * Runtime quirk: grammy delegates to `globalThis.fetch`. The shape of the
+ * proxy option differs by runtime:
+ *   - Node.js + node-fetch: pass `agent: https.Agent` (we use HttpsProxyAgent).
+ *   - Bun's native fetch  : pass `proxy: string` directly on RequestInit;
+ *                           the `agent` field is silently ignored.
+ * We pick the right field based on the active runtime so traffic actually
+ * goes through the proxy in both environments.
  */
 export function createTelegramBot(token: string, proxyUrl?: string): Bot<BotContext> {
-  const bot = proxyUrl
-    ? new Bot<BotContext>(token, {
-        client: {
-          baseFetchConfig: {
-            agent: new HttpsProxyAgent(proxyUrl),
-          } as Record<string, unknown>,
-        },
-      })
-    : new Bot<BotContext>(token);
+  if (!proxyUrl) {
+    const bot = new Bot<BotContext>(token);
+    bot.api.config.use(hydrateFiles(bot.token));
+    return bot;
+  }
 
+  const baseFetchConfig: Record<string, unknown> = isBun
+    ? { proxy: proxyUrl }
+    : { agent: new HttpsProxyAgent(proxyUrl) };
+
+  const bot = new Bot<BotContext>(token, {
+    client: { baseFetchConfig },
+  });
   bot.api.config.use(hydrateFiles(bot.token));
   return bot;
 }
