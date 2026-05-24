@@ -11,10 +11,10 @@ import { Bot, GrammyError, HttpError } from 'grammy';
 import { AppConfigService } from '../config/app-config.service.js';
 import { ExpensesService } from '../expenses/expenses.service.js';
 import type { RawExpenseInput } from '../llm/expense.schema.js';
+import { resolveProxyUrl } from '../proxy/proxy.js';
 import {
   type BotContext,
   createTelegramBot,
-  parseFirstProxyUrl,
 } from './telegram-bot.factory.js';
 
 // `file.download(path)` is added by `@grammyjs/files`. We model only the bits
@@ -32,7 +32,7 @@ export class TelegramService implements OnApplicationBootstrap, OnModuleDestroy 
     private readonly config: AppConfigService,
     private readonly expenses: ExpensesService,
   ) {
-    const proxyUrl = parseFirstProxyUrl(this.config.proxyUrl);
+    const proxyUrl = resolveProxyUrl(this.config.proxyUrl);
     if (proxyUrl) {
       this.logger.log(`Routing Telegram traffic through proxy ${proxyUrl}`);
     }

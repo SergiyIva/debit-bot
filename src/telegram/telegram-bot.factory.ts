@@ -37,17 +37,3 @@ export function createTelegramBot(token: string, proxyUrl?: string): Bot<BotCont
   return bot;
 }
 
-/**
- * `PROXY_URL` may be either a plain proxy URL or a JSON-encoded array of URLs;
- * in the latter case we use the first one.
- */
-export function parseFirstProxyUrl(raw: string | undefined): string | undefined {
-  if (!raw) return undefined;
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed) && typeof parsed[0] === 'string') return parsed[0];
-  } catch {
-    // raw is a plain URL
-  }
-  return raw;
-}

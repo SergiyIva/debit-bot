@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+// Side-effect import — must precede any module that issues HTTP requests
+// (googleapis, grammy, etc.) so HTTPS_PROXY/HTTP_PROXY are valid before use.
+import './proxy/bootstrap.js';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
